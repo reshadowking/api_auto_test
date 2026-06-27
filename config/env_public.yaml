@@ -1,0 +1,5 @@
+#公开域名、超时配置
+base_url: "https://reqres.in"
+request_timeout: 10
+global_headers:
+  Content-Type: "application/json"

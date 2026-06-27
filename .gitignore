@@ -1,0 +1,20 @@
+# 敏感账号配置，禁止上传
+config/.env
+
+# Allure 运行生成报告文件夹
+report_raw/
+allure_html/
+
+# Python 缓存
+__pycache__/
+*.pyc
+
+# pytest 缓存
+.pytest_cache/
+
+# VSCode 本地配置
+.vscode/
+
+# 日志目录（你项目如果有logs文件夹也会过滤）
+logs/
+*.log

@@ -1,0 +1,54 @@
+#所有接口用例
+case_list:
+  #GET查询用户列表
+  - method: GET
+    path: /api/users
+    mark: get
+    expect_code: 200
+  #POST创建用户
+  - method: POST
+    path: /api/users
+    json:
+      name: 测试张三
+      username: auto_test
+      email: test@demo.com
+    mark: post
+    expect_code: 201
+  #PUT更新用户数据
+  - method: PUT
+    path: /api/users/1
+    json:
+      name: 测试李四(更新)
+      username: update_test
+    mark: put
+    expect_code: 200
+  #DELETE删除用户数据
+  - method: DELETE
+    path: /api/users/1
+    mark: delete
+    expect_code: 204
+  - method: POST
+    path: /api/users
+    json:
+      # 缺失必填字段name
+      username: auto_test_error
+      email: test_error@demo.com
+    mark: post_error
+    expect_code: 201 
+  - method: PUT
+    path: /api/users/9999  
+    json:
+      name: 不存在用户
+      username: update_error
+    mark: put_error
+    expect_code: 200  
+  - method: DELETE
+    path: /api/users/9999
+    mark: delete_error
+    expect_code: 204
+
+      
+
+
+
+      
