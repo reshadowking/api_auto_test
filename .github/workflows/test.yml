@@ -1,6 +1,5 @@
 name: API Auto Test
 
-# 触发条件：push 代码到 main 分支时自动跑
 on:
   push:
     branches: [ main ]
@@ -13,10 +12,10 @@ jobs:
 
     steps:
     - name: 拉取代码
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - name: 安装 Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: '3.10'
 
@@ -32,9 +31,18 @@ jobs:
     - name: 运行测试用例
       run: pytest --alluredir=report_raw
 
-    - name: 上传 Allure 测试报告
-      uses: actions/upload-artifact@v4
+    - name: 生成 Allure 报告
+      uses: simple-elf/allure-report-action@v1.9
       if: always()
       with:
-        name: allure-report
-        path: report_raw/
+        allure_results: report_raw
+        allure_history: allure-history
+        keep_reports: 20
+
+    - name: 部署报告到 GitHub Pages
+      uses: peaceiris/actions-gh-pages@v3
+      if: always()
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: allure-history
+        publish_branch: gh-pages
