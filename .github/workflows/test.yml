@@ -1,0 +1,40 @@
+name: API Auto Test
+
+# 触发条件：push 代码到 main 分支时自动跑
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: 拉取代码
+      uses: actions/checkout@v3
+
+    - name: 安装 Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+
+    - name: 创建 .env 配置文件
+      run: |
+        echo "LOGIN_EMAIL=${{ secrets.LOGIN_EMAIL }}" > config/.env
+        echo "LOGIN_PWD=${{ secrets.LOGIN_PWD }}" >> config/.env
+        echo "REQRES_API_KEY=${{ secrets.REQRES_API_KEY }}" >> config/.env
+
+    - name: 安装依赖
+      run: pip install -r requirements.txt
+
+    - name: 运行测试用例
+      run: pytest --alluredir=report_raw
+
+    - name: 上传 Allure 测试报告
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: allure-report
+        path: report_raw/

@@ -13,6 +13,7 @@ def test_all_user_api(case_info):
 
     # Allure标题、子模块
     allure.dynamic.title(case_desc)
+    
     if case_mark == "get":
         allure.dynamic.story("查询用户信息")
     elif case_mark == "post":
