@@ -31,18 +31,20 @@ jobs:
     - name: 运行测试用例
       run: pytest --alluredir=report_raw
 
-    - name: 生成 Allure 报告
-      uses: simple-elf/allure-report-action@v1.9
+    - name: 安装 Allure CLI
       if: always()
-      with:
-        allure_results: report_raw
-        allure_history: allure-history
-        keep_reports: 20
+      run: |
+        wget https://github.com/allure-framework/allure2/releases/download/2.30.0/allure-2.30.0.tgz
+        tar -xzf allure-2.30.0.tgz
+        echo "F:\360MoveData\Users\asasz\Desktop\KZZ\newtt\allure-2.30.0\bin" >> $GITHUB_PATH
 
-    - name: 部署报告到 GitHub Pages
-      uses: peaceiris/actions-gh-pages@v3
+    - name: 生成 Allure 报告
+      if: always()
+      run: ./allure-2.30.0/bin/allure generate report_raw -o allure_html --clean
+
+    - name: 上传 HTML 测试报告
+      uses: actions/upload-artifact@v4
       if: always()
       with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        publish_dir: allure-history
-        publish_branch: gh-pages
+        name: allure-html-report
+        path: allure_html/
