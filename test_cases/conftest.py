@@ -21,10 +21,17 @@ default_checks = _cases_yaml.get("default_checks", {})
 
 
 def _with_defaults(case):
-    """收集阶段把默认校验合并进每条用例，执行时无需再处理"""
+    """收集阶段把默认校验合并进每条用例，执行时无需再处理
+
+    同时记录用例「原本显式写了哪些 expect_* 键」——合并之后 case 里就混进了
+    默认键，执行阶段再也分不清来源，因此必须在这里（合并前）留痕。
+    """
     from common.assert_engine import merge_defaults
 
-    return merge_defaults(case, default_checks)
+    explicit_keys = {k for k in case if k.startswith("expect_")}
+    merged = merge_defaults(case, default_checks)
+    merged["_explicit_expect_keys"] = explicit_keys
+    return merged
 
 
 # 把每条用例包成 pytest.param 并在收集阶段挂上对应 mark 标签，

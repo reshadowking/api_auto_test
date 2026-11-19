@@ -165,19 +165,30 @@ def assert_response(response, case, defaults=None, variables=None):
     """按用例里的 expect_* 配置校验响应；每类校验在 Allure 中生成独立 step
 
     defaults：全局默认校验，用例未覆盖的部分自动补齐（见 merge_defaults）
-    用例可用 expect: false 关闭全部默认校验（如 204 无响应体的接口），仅保留状态码与 JSON Schema
+    用例可用 expect: false 跳过默认校验（如 204 无响应体的接口），
+    用例自己显式写的断言仍执行；expect_code / expect_json_schema 始终保留。
+    注意：显式键以 conftest 合并默认校验之前记录在 case["_explicit_expect_keys"]
+    里的标记为准，否则合并后无法区分默认键与显式键（会误校验默认项）。
     variables：变量表（dict），跨请求共享。传了就支持 {{变量名}} 占位与 expect_capture
     """
     if variables is not None:
         # 占位符先替换（path/json/规则 value 都可引用），再走原有校验
         case = render(case, variables)
+    # 显式键来源：优先用 conftest 收集阶段（合并默认校验之前）留下的标记——
+    # 那时 case 还没混入默认键；没有标记（如链路直接调用）则现场计算
+    if "_explicit_expect_keys" in case:
+        case = dict(case)
+        explicit_expect_keys = set(case.pop("_explicit_expect_keys") or ())
+    else:
+        explicit_expect_keys = {k for k in case if k.startswith("expect_")}
     case = merge_defaults(case, defaults)
     if case.get("expect") is False:
-        # 免检：只保留状态码与 JSON Schema，其余默认校验全部跳过
+        # 只剥掉默认校验；用例显式写的断言保留（expect_code / expect_json_schema 始终保留）
         case = {
             k: v
             for k, v in case.items()
             if not k.startswith("expect_")
+            or k in explicit_expect_keys
             or k in ("expect_code", "expect_json_schema")
         }
     expect_code = case.get("expect_code")

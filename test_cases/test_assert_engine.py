@@ -61,12 +61,36 @@ class TestMergeDefaults:
 
 class TestExpectFalse:
     def test_expect_false_skips_default_checks(self):
-        """expect: false 时只校验状态码，headers/rules 等默认校验一律不执行"""
+        """expect: false 时，默认(合并进来的) header 校验不执行"""
         resp = FakeResponse(status=204, body=None, headers={})
         assert_response(
             resp,
-            case(expect_code=204, expect=False, expect_headers={"Content-Type": "json"}),
+            case(expect_code=204, expect=False),
+            defaults={"expect_headers": {"Content-Type": "json"}},
         )
+
+    def test_expect_false_keeps_explicit_checks(self):
+        """expect: false 只剥默认校验，用例显式写的断言仍然执行"""
+        with pytest.raises(AssertionError, match="期望 10"):
+            assert_response(
+                FakeResponse(body={"total": "10"}),
+                case(expect=False, expect_rules=[
+                    {"field": "total", "rule": "equals", "value": 10}]),
+            )
+
+    def test_collected_case_respects_explicit_keys(self):
+        """回归: conftest 收集阶段已合并默认校验时，以 _explicit_expect_keys 为准
+
+        用例原本只写了 expect_code，默认的 expect_headers 是合并进来的，
+        不能因为它在 case 里就当成用户显式声明的去校验(204 无响应体)。
+        """
+        collected = case(
+            expect_code=204,
+            expect=False,
+            expect_headers={"Content-Type": "json"},   # 模拟收集阶段由默认合并进来
+            _explicit_expect_keys={"expect_code"},     # 收集阶段记录的真实显式键
+        )
+        assert_response(FakeResponse(status=204, body=None, headers={}), collected)
 
     def test_defaults_applied_through_assert_response(self):
         """默认 max_time 生效：超过上限应失败"""
