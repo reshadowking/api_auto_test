@@ -40,7 +40,17 @@ class ApiClient:
         login_url =self.full_url("/api/login")
         resp = self.session.post(login_url,json={"email":email,"password":pwd})
         print("登录接口返回",resp.text)
-        self.token =resp.json()["token"]
+        try:
+            body = resp.json()
+        except ValueError:
+            raise AssertionError(f"登录返回非 JSON（状态码 {resp.status_code}）：{resp.text[:200]}")
+        if "token" not in body:
+            # 常见原因：免费额度耗尽（rate_limit_exceeded）或账号密码错误
+            raise AssertionError(
+                f"登录失败（状态码 {resp.status_code}）：{body.get('error', body)}。"
+                "若为 rate_limit_exceeded，说明 Reqres 免费额度已用完，需等待重置或改用本地接口。"
+            )
+        self.token = body["token"]
         self.session.headers["Authorization"]=f"Bearer {self.token}"
         return self.token
 
@@ -62,6 +72,8 @@ class ApiClient:
             raise AssertionError(f"网络连接失败，无法访问地址：{url}，检查域名或网络")
         except RequestException as e:
             raise AssertionError(f"接口请求异常：{str(e)}，请求地址：{url}")
+        # 把耗时挂到响应对象上，供断言引擎的 max_time 规则使用
+        res.elapsed_seconds = res.elapsed.total_seconds()
         return res
     #简化send调用
     def get(self,path,params=None):

@@ -29,14 +29,14 @@ jobs:
       run: pip install -r requirements.txt
 
     - name: 运行测试用例
-      run: pytest --alluredir=report_raw
+      run: pytest --alluredir=report_raw -m "not bookstack"
 
     - name: 安装 Allure CLI
       if: always()
       run: |
         wget https://github.com/allure-framework/allure2/releases/download/2.30.0/allure-2.30.0.tgz
         tar -xzf allure-2.30.0.tgz
-        echo "F:\360MoveData\Users\asasz\Desktop\KZZ\newtt\allure-2.30.0\bin" >> $GITHUB_PATH
+        echo "$GITHUB_WORKSPACE/allure-2.30.0/bin" >> $GITHUB_PATH
 
     - name: 生成 Allure 报告
       if: always()

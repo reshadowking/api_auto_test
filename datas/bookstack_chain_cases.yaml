@@ -1,0 +1,73 @@
+# BookStack 数据一致性链路（YAML 变量表版）
+#
+# 与 test_bookstack_chain.py 等价的场景，但不再手写 Python 拼值：
+#   - 第 1 步 expect_capture 把 id/name 存入变量表 ctx
+#   - 后续步骤用 {{book_id}} / {{book_name}} 引用
+#   - equals_var 断言字段等于变量值（保持原始类型）
+#
+# 执行顺序即列表顺序，ctx 在同一个测试函数内共享。
+default_checks:
+  expect_max_time: 10
+  expect_headers: {}          # BookStack 部分接口无 Content-Type 声明，关闭默认校验
+
+case_list:
+  - mark: chain_create
+    method: POST
+    path: /api/books
+    desc: 1. 创建图书（捕获 id 与名称到变量表）
+    json:
+      name: "自动测试-{{suffix}}"
+    expect_code: 200
+    expect_schema:
+      id: int
+      name: string
+      slug: string
+    expect_capture:
+      book_id: id
+      book_name: name
+
+  - mark: chain_get
+    method: GET
+    path: /api/books/{{book_id}}
+    desc: 2. 查询刚创建的图书 → 数据已持久化
+    expect_code: 200
+    expect_rules:
+      - field: id
+        rule: equals_var
+        value: "{{book_id}}"
+      - field: name
+        rule: not_empty
+
+  - mark: chain_update
+    method: PUT
+    path: /api/books/{{book_id}}
+    desc: 3. 更新图书名称
+    json:
+      name: "{{book_name}}-已更新"
+    expect_code: 200
+
+  - mark: chain_verify
+    method: GET
+    path: /api/books/{{book_id}}
+    desc: 3b. 二次查询，验证数据一致性
+    expect_code: 200
+    expect_rules:
+      - field: id
+        rule: equals_var
+        value: "{{book_id}}"
+
+  - mark: chain_delete
+    method: DELETE
+    path: /api/books/{{book_id}}
+    desc: 4. 删除图书
+    expect_code: 204
+    expect: false
+
+  - mark: chain_deleted
+    method: GET
+    path: /api/books/{{book_id}}
+    desc: 4b. 查询已删除图书，应 404
+    expect_code: 404
+    expect_schema:
+      error: dict
+      error.message: string

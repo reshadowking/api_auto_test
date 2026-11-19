@@ -1,0 +1,26 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "BookStack 图书列表响应",
+  "type": "object",
+  "required": ["data", "total"],
+  "properties": {
+    "data": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "slug", "name", "created_at"],
+        "properties": {
+          "id": { "type": "integer", "minimum": 1 },
+          "slug": { "type": "string" },
+          "name": { "type": "string", "minLength": 1 },
+          "description": { "type": "string" },
+          "created_at": { "type": "string" },
+          "updated_at": { "type": "string" },
+          "owned_by": { "type": "integer" },
+          "created_by": { "type": "integer" }
+        }
+      }
+    },
+    "total": { "type": "integer", "minimum": 0 }
+  }
+}

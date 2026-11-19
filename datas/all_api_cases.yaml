@@ -1,54 +1,129 @@
-#所有接口用例
+# 所有接口用例
+# 断言全部由 expect_* 描述，用例代码无需改动：
+#   expect_code          期望状态码
+#   expect_schema        字段路径 -> 类型（a.b、data[0].id、items[*].name）
+#   expect_rules         业务规则：not_empty / not_null / contains / equals /
+#                        min_length / max_length / between / matches / absent /
+#                        equals_var（断言字段等于变量值）
+#   expect_capture       从响应取值存进变量表：{变量名: 字段路径}
+#   {{变量名}}           占位符，可用于 path / json / 规则 value（需传入变量表）
+#   expect_json_schema   引用 schemas/ 下的 JSON Schema 文件
+#   expect_max_time      响应耗时上限（秒）
+#   expect_headers       响应头包含校验
+#
+# default_checks：全局默认校验。用例没写的自动用默认值，写了就覆盖；
+#                 expect_rules / expect_schema / expect_headers 会合并
+default_checks:
+  expect_max_time: 5
+  expect_headers:
+    Content-Type: application/json
+  expect_rules:
+    - field: password
+      rule: absent
+
 case_list:
-  #GET查询用户列表
+  # GET 查询用户列表（max_time / Content-Type / password 缺失 都来自默认配置）
   - method: GET
     path: /api/users
     mark: get
+    desc: 获取用户列表
     expect_code: 200
-  #POST创建用户
+    expect_contract: reqres_openapi
+    expect_json_schema: reqres_user_list
+    expect_rules:
+      - field: data
+        rule: not_empty
+      - field: data[*].email
+        rule: matches
+        value: "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$"
+      - field: page
+        rule: between
+        min: 1
+        max: 100
+
+  # GET 查询单个用户
+  - method: GET
+    path: /api/users/1
+    mark: get
+    desc: 获取单个用户
+    expect_code: 200
+    expect_contract: reqres_openapi
+    expect_json_schema: reqres_user_detail
+    expect_rules:
+      - field: data.id
+        rule: equals
+        value: 1
+
+  # POST 创建用户
   - method: POST
     path: /api/users
+    mark: post
+    desc: 创建用户
+    expect_contract: reqres_openapi
     json:
       name: 测试张三
       username: auto_test
       email: test@demo.com
-    mark: post
     expect_code: 201
-  #PUT更新用户数据
+    expect_rules:
+      - field: id
+        rule: not_empty
+      - field: name
+        rule: equals
+        value: 测试张三
+
+  # PUT 更新用户
   - method: PUT
     path: /api/users/1
+    mark: put
+    desc: 更新用户
     json:
       name: 测试李四(更新)
       username: update_test
-    mark: put
     expect_code: 200
-  #DELETE删除用户数据
+    expect_schema:
+      name: string
+      username: string
+      updatedAt: string
+    expect_rules:
+      - field: name
+        rule: not_empty
+      - field: username
+        rule: max_length
+        value: 50
+
+  # DELETE 删除用户（204 无响应体，仅校验状态码；默认规则自动沿用）
   - method: DELETE
     path: /api/users/1
     mark: delete
+    desc: 删除用户
     expect_code: 204
+    expect: false          # 204 无响应体，关闭默认的 Content-Type/耗时等校验
+
+  # POST 缺失必填字段 name
   - method: POST
     path: /api/users
+    mark: post_error
+    desc: 创建用户-缺失必填字段
     json:
-      # 缺失必填字段name
       username: auto_test_error
       email: test_error@demo.com
-    mark: post_error
-    expect_code: 201 
+    expect_code: 201
+
+  # PUT 更新不存在用户
   - method: PUT
-    path: /api/users/9999  
+    path: /api/users/9999
+    mark: put_error
+    desc: 更新用户-不存在ID
     json:
       name: 不存在用户
       username: update_error
-    mark: put_error
-    expect_code: 200  
+    expect_code: 200
+
+  # DELETE 删除不存在用户
   - method: DELETE
     path: /api/users/9999
     mark: delete_error
+    desc: 删除用户-不存在ID
     expect_code: 204
-
-      
-
-
-
-      
+    expect: false
