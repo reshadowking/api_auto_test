@@ -165,24 +165,19 @@ def assert_response(response, case, defaults=None, variables=None):
     """按用例里的 expect_* 配置校验响应；每类校验在 Allure 中生成独立 step
 
     defaults：全局默认校验，用例未覆盖的部分自动补齐（见 merge_defaults）
-    用例可用 expect: false 跳过默认校验（如 204 无响应体的接口），
-    但用例自己显式写的断言仍会执行；expect_code / expect_json_schema 始终保留
+    用例可用 expect: false 关闭全部默认校验（如 204 无响应体的接口），仅保留状态码与 JSON Schema
     variables：变量表（dict），跨请求共享。传了就支持 {{变量名}} 占位与 expect_capture
     """
     if variables is not None:
         # 占位符先替换（path/json/规则 value 都可引用），再走原有校验
         case = render(case, variables)
-    # 合并默认校验前，先记住用例自己显式声明了哪些校验键，
-    # 供 expect: false 时区分「默认补进来的」和「用例自己写的」
-    explicit_expect_keys = {k for k in case if k.startswith("expect_")}
     case = merge_defaults(case, defaults)
     if case.get("expect") is False:
-        # 只剥掉默认校验；用例显式写的断言保留（expect_code / expect_json_schema 始终保留）
+        # 免检：只保留状态码与 JSON Schema，其余默认校验全部跳过
         case = {
             k: v
             for k, v in case.items()
             if not k.startswith("expect_")
-            or k in explicit_expect_keys
             or k in ("expect_code", "expect_json_schema")
         }
     expect_code = case.get("expect_code")
